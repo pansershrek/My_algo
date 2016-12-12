@@ -1,0 +1,264 @@
+#include <stdio.h>
+#include <stdlib.h>
+int max(int w1,int w2)
+{
+    return (w1>w2)?w1:w2;
+}
+struct node{
+    long long val,key;
+    int h;
+    struct node *l,*r,*p;
+};
+typedef struct node *tree;
+tree n_node(long long key,long long val)
+{
+
+    tree t=(tree)malloc(sizeof(struct node));
+    (t)->key=key;
+    (t)->val=val;
+    (t)->h=1;
+    return t;
+}
+long long search(tree t,tree n_t)
+{
+    if (!t) {
+        return 0;
+    }
+    if (t->key==n_t->key) {
+        printf("%lld %lld\n",t->key,t->val);
+        return 0;
+    }
+    if (t->key < n_t->key)
+        return search(t->r,n_t);
+    else
+        return search(t->l,n_t);
+}
+int get_h(tree t)
+{
+    return (t)?t->h:0;
+}
+void calc_h(tree t)
+{
+    if (t)
+        t->h=max(get_h(t->l),get_h(t->r))+1;
+}
+int calc_b(tree t)
+{
+    if (t)
+        return get_h(t->r)-get_h(t->l);
+    return 0;
+}
+void r_move(tree *t)
+{
+    tree t1=(*t)->l;
+    (*t)->l=t1->r;
+    if (t1->r)
+        t1->r->p=*t;
+    t1->p=(*t)->p;
+    (*t)->p=t1;
+    t1->r=*t;
+    *t=t1;
+    calc_h((*t)->r);
+    calc_h(*t);
+}
+void l_move(tree *t)
+{
+    tree t1=(*t)->r;
+    (*t)->r=t1->l;
+    if (t1->l)
+        t1->l->p=*t;
+    t1->p=(*t)->p;
+    (*t)->p=t1;
+    t1->l=*t;
+    *t=t1;
+    calc_h((*t)->l);
+    calc_h(*t);
+}
+void LR(tree *t)
+{
+    l_move(&(*t)->l);
+    r_move(t);
+}
+void RL(tree *t)
+{
+    r_move(&(*t)->r);
+    l_move(t);
+}
+void balance(tree *t)
+{
+    if (calc_b(*t)==-2 && calc_b((*t)->l)==-1)
+        r_move(t);
+    else
+    if (calc_b(*t)==2 && calc_b((*t)->r)==1)
+        l_move(t);
+    else
+    if (calc_b(*t)==-2 && calc_b((*t)->l)==1)
+        LR(t);
+    else
+        if (calc_b(*t)==2 && calc_b((*t)->r)==-1)
+            RL(t);
+}
+void add_node(tree *t,tree n_t)
+{
+    if (!(*t))
+    {
+        *t=n_t;
+        return;
+    }
+    if ((*t)->key < n_t->key) {
+        add_node(&(*t)->r, n_t);
+        if ((*t)->r)
+            (*t)->r->p=*t;
+    }
+    else
+        if ((*t)->key >n_t->key) {
+            add_node(&(*t)->l, n_t);
+            if ((*t)->l)
+                (*t)->l->p=*t;
+        }
+    else
+        {
+            (*t)->val=n_t->val;
+            free(n_t);
+        }
+    calc_h(*t);
+    balance(t);
+}
+void remove_node(tree *t,tree n_t)
+{
+    if (!(*t))
+        return;
+    if ((*t)->key <n_t->key)
+    {
+        remove_node(&(*t)->r, n_t);
+    }
+    else
+        if ((*t)->key>n_t->key)
+            remove_node(&(*t)->l,n_t);
+    else
+        {
+            free(n_t);
+            if (!(*t)->l && !(*t)->r)
+            {
+                tree pred=(*t)->p;
+                if (pred &&pred->l==(*t))
+                    pred->l=NULL;
+                else
+                    if (pred)
+                    pred->r=NULL;
+                calc_h(pred);
+                free((*t));
+                *t=NULL;
+            }
+            else
+                if ((*t)->l && (*t)->r)
+                {
+                    tree t1=*t,t2;
+                    t1=t1->l;
+                    while (t1->r)
+                        t1=t1->r;
+                    (*t)->key=t1->key;
+                    (*t)->val=t1->val;
+                    if (t1==(*t)->l)
+                    {
+                        (*t)->l=t1->l;
+                        if (t1->l)
+                            t1->l->p=*t;
+                        calc_b(*t);
+                        balance(t);
+                    }
+                    else
+                    {
+                        if (t1->l)
+                            t1->l->p=t1->p;
+                        t1->p->r=t1->l;
+                        t2=t1->p;
+                        free(t1);
+                        while (t2!=*t)
+                        {
+                            calc_b(t2);
+                            balance(&t2);
+                            t2=t2->p;
+                        }
+                        calc_b(*t);
+                        balance(t);
+                    }
+                    /*t1->p=t1->l;
+                    t2=t1->l;
+                    (*t)->key=t1->key;
+                    (*t)->val=t1->val;
+                    free(t1);
+                    while (t2!=(*t))
+                    {
+                        calc_h(t2);
+                        balance(&t2);
+                        t2=t2->p;
+                    }*/
+                }
+            else
+                    if ((*t)->l)
+                    {
+                        tree t1=(*t)->l;
+                        (*t)->key=t1->key;
+                        (*t)->val=t1->val;
+                        (*t)->l=t1->l;
+                        (*t)->r=t1->r;
+                        calc_b(*t);
+                        free(t1);
+                    }
+            else
+                        if ((*t)->r)
+                        {
+                            tree t1=(*t)->r;
+                            (*t)->key=t1->key;
+                            (*t)->val=t1->val;
+                            (*t)->l=t1->l;
+                            (*t)->r=t1->r;
+                            calc_b(*t);
+                            free(t1);
+                        }
+        }
+    calc_b(*t);
+    balance(t);
+}
+void clean_t(tree t)
+{
+    if (!t) return;
+    if (t->l)
+        clean_t(t->l);
+    if (t->r)
+        clean_t(t->r);
+    free(t);
+}
+int main(void)
+{
+    tree root=NULL;
+
+    char ch;
+    scanf("%c",&ch);
+    while (ch!='F')
+    {
+        if (ch=='A')
+        {
+            long long key,data;
+            scanf("%lld%lld",&key,&data);
+            add_node(&root,n_node(key,data));
+        }
+        else
+            if (ch=='D')
+            {
+                long long key;
+                scanf("%lld",&key);
+                remove_node(&root,n_node(key,1));
+            }
+        else
+            {
+                long long key;
+                scanf("%lld",&key);
+                search(root,n_node(key,1));
+            }
+        scanf("\n%c",&ch);
+    }
+    clean_t(root);
+    return 0;
+}
